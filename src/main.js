@@ -102,61 +102,16 @@ function handleScroll() {
         }
     }, 150);
 }
-window.addEventListener('message', (event) => {
-  if (event.data.type === 'scrollSync') {
-    // Convert progress to actual scroll position
-    const totalDistance = (positions.length - 1) * 1000;
-    const scrollPosition = event.data.progress * totalDistance;
-    
-    // Manually set scroll position
-    window.scrollTo(0, scrollPosition);
-    
-    // Update camera based on new scroll position
-    updateCamera();
-    
-    // If scroll reaches the end, notify parent
-    if (event.data.progress >= 0.99) {
-      window.parent.postMessage({
-        type: 'iframeScrollLimit'
-      }, '*');
-    }
-  }
-});
-
-// Modify updateCamera to ensure precise positioning
-function updateCamera() {
-  const scrollPercent = window.scrollY / totalDistance;
-  progress = Math.max(0, Math.min(positions.length - 1, scrollPercent * (positions.length - 1)));
-  
-  const currentIndex = Math.floor(progress);
-  const nextIndex = Math.min(currentIndex + 1, positions.length - 1);
-  const t = progress - currentIndex;
-  
-  const interpolated = interpolatePositions(positions[currentIndex], positions[nextIndex], t);
-  
-  camera.position.set(
-    interpolated.pos.x,
-    interpolated.pos.y,
-    interpolated.pos.z
-  );
-  
-  camera.rotation.set(
-    interpolated.rot.x,
-    interpolated.rot.y,
-    interpolated.rot.z
-  );
-}
 
 // Add scroll event listener
-// window.addEventListener('scroll', handleScroll, { passive: true });
+window.addEventListener('scroll', handleScroll, { passive: true });
 
 // Initial position setup
-// camera.position.copy(positions[0].pos);
-// camera.rotation.set(positions[0].rot.x, positions[0].rot.y, positions[0].rot.z);
+camera.position.copy(positions[0].pos);
+camera.rotation.set(positions[0].rot.x, positions[0].rot.y, positions[0].rot.z);
 
 // Handle window resize
-// window.addEventListener('resize', () => {
-    // camera.aspect = window.innerWidth / window.innerHeight;
-    // camera.updateProjectionMatrix();
-// });
-
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+});
