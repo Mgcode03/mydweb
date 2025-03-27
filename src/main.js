@@ -115,3 +115,20 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 });
+window.addEventListener("message", (event) => {
+    if (event.data.scrollProgress !== undefined) {
+        let progress = event.data.scrollProgress
+        updateCameraPosition(progress)
+    }
+})
+
+function updateCameraPosition(progress) {
+    const startPos = { x: 0, y: 2, z: 5 }
+    const endPos = { x: 2, y: 1, z: 1 } // Adjust based on your scene
+
+    camera.position.x = startPos.x + (endPos.x - startPos.x) * progress
+    camera.position.y = startPos.y + (endPos.y - startPos.y) * progress
+    camera.position.z = startPos.z + (endPos.z - startPos.z) * progress
+
+    camera.lookAt(new THREE.Vector3(0, 0, 0)) // Adjust target if needed
+}
