@@ -102,22 +102,6 @@ function handleScroll() {
         }
     }, 150);
 }
-
-// Add scroll event listener
-window.addEventListener('scroll', handleScroll, { passive: true });
-
-// Initial position setup
-camera.position.copy(positions[0].pos);
-camera.rotation.set(positions[0].rot.x, positions[0].rot.y, positions[0].rot.z);
-
-// Handle window resize
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-});
-// Modify your existing main.js
-
-// Add message listener for scroll synchronization
 window.addEventListener('message', (event) => {
   if (event.data.type === 'scrollSync') {
     // Convert progress to actual scroll position
@@ -162,3 +146,17 @@ function updateCamera() {
     interpolated.rot.z
   );
 }
+
+// Add scroll event listener
+// window.addEventListener('scroll', handleScroll, { passive: true });
+
+// Initial position setup
+// camera.position.copy(positions[0].pos);
+// camera.rotation.set(positions[0].rot.x, positions[0].rot.y, positions[0].rot.z);
+
+// Handle window resize
+// window.addEventListener('resize', () => {
+    // camera.aspect = window.innerWidth / window.innerHeight;
+    // camera.updateProjectionMatrix();
+// });
+
