@@ -115,20 +115,50 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 });
-window.addEventListener("message", (event) => {
-    if (event.data.scrollProgress !== undefined) {
-        let progress = event.data.scrollProgress
-        updateCameraPosition(progress)
+// Modify your existing main.js
+
+// Add message listener for scroll synchronization
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'scrollSync') {
+    // Convert progress to actual scroll position
+    const totalDistance = (positions.length - 1) * 1000;
+    const scrollPosition = event.data.progress * totalDistance;
+    
+    // Manually set scroll position
+    window.scrollTo(0, scrollPosition);
+    
+    // Update camera based on new scroll position
+    updateCamera();
+    
+    // If scroll reaches the end, notify parent
+    if (event.data.progress >= 0.99) {
+      window.parent.postMessage({
+        type: 'iframeScrollLimit'
+      }, '*');
     }
-})
+  }
+});
 
-function updateCameraPosition(progress) {
-    const startPos = { x: 0, y: 2, z: 5 }
-    const endPos = { x: 2, y: 1, z: 1 } // Adjust based on your scene
-
-    camera.position.x = startPos.x + (endPos.x - startPos.x) * progress
-    camera.position.y = startPos.y + (endPos.y - startPos.y) * progress
-    camera.position.z = startPos.z + (endPos.z - startPos.z) * progress
-
-    camera.lookAt(new THREE.Vector3(0, 0, 0)) // Adjust target if needed
+// Modify updateCamera to ensure precise positioning
+function updateCamera() {
+  const scrollPercent = window.scrollY / totalDistance;
+  progress = Math.max(0, Math.min(positions.length - 1, scrollPercent * (positions.length - 1)));
+  
+  const currentIndex = Math.floor(progress);
+  const nextIndex = Math.min(currentIndex + 1, positions.length - 1);
+  const t = progress - currentIndex;
+  
+  const interpolated = interpolatePositions(positions[currentIndex], positions[nextIndex], t);
+  
+  camera.position.set(
+    interpolated.pos.x,
+    interpolated.pos.y,
+    interpolated.pos.z
+  );
+  
+  camera.rotation.set(
+    interpolated.rot.x,
+    interpolated.rot.y,
+    interpolated.rot.z
+  );
 }
