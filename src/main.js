@@ -17,101 +17,41 @@ const positions = [
    
 ];
 
-let progress = 0;
-let currentSection = 0;
-let isAnimating = false;
+let externalProgress = 0;
 
-// Set up scroll sections
-const totalDistance = (positions.length - 1) * 1000; // Total scroll distance needed
-document.body.style.height = `${totalDistance}px`;
-
-// Smooth scroll handling
-let scrollVelocity = 0;
-let lastScrollPosition = 0;
-let scrollTimeout;
-
-// Function to interpolate between two positions based on progress
-function interpolatePositions(curr, next, t) {
-    return {
-        pos: {
-            x: gsap.utils.interpolate(curr.pos.x, next.pos.x, t),
-            y: gsap.utils.interpolate(curr.pos.y, next.pos.y, t),
-            z: gsap.utils.interpolate(curr.pos.z, next.pos.z, t)
-        },
-        rot: {
-            x: gsap.utils.interpolate(curr.rot.x, next.rot.x, t),
-            y: gsap.utils.interpolate(curr.rot.y, next.rot.y, t),
-            z: gsap.utils.interpolate(curr.rot.z, next.rot.z, t)
-        }
-    };
-}
-
-// Update camera position based on scroll
-function updateCamera() {
-    const scrollPercent = window.scrollY / totalDistance;
-    progress = Math.max(0, Math.min(positions.length - 1, scrollPercent * (positions.length - 1)));
-    
-    const currentIndex = Math.floor(progress);
+// Update camera position based on external progress (0-1)
+function updateCamera(progress) {
+    const mappedProgress = progress * (positions.length - 1);
+    const currentIndex = Math.floor(mappedProgress);
     const nextIndex = Math.min(currentIndex + 1, positions.length - 1);
-    const t = progress - currentIndex;
+    const t = mappedProgress - currentIndex;
     
     const interpolated = interpolatePositions(positions[currentIndex], positions[nextIndex], t);
     
-    camera.position.set(
-        interpolated.pos.x,
-        interpolated.pos.y,
-        interpolated.pos.z
-    );
-    
-    camera.rotation.set(
-        interpolated.rot.x,
-        interpolated.rot.y,
-        interpolated.rot.z
-    );
+    gsap.to(camera.position, {
+        x: interpolated.pos.x,
+        y: interpolated.pos.y,
+        z: interpolated.pos.z,
+        duration: 0.5,
+        ease: "power2.out"
+    });
+
+    gsap.to(camera.rotation, {
+        x: interpolated.rot.x,
+        y: interpolated.rot.y,
+        z: interpolated.rot.z,
+        duration: 0.5,
+        ease: "power2.out"
+    });
 }
 
-// Smooth scroll handler
-function handleScroll() {
-    const currentScrollPosition = window.scrollY;
-    scrollVelocity = currentScrollPosition - lastScrollPosition;
-    lastScrollPosition = currentScrollPosition;
-    
-    // Clear existing timeout
-    if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
+// Listen for messages from parent (Framer)
+window.addEventListener('message', (event) => {
+    if (event.data.type === 'SCROLL_PROGRESS') {
+        updateCamera(event.data.progress);
     }
-    
-    // Update camera
-    updateCamera();
-    
-    // Set timeout for smooth stop
-    scrollTimeout = setTimeout(() => {
-        const currentIndex = Math.round(progress);
-        const targetScrollPosition = currentIndex * (totalDistance / (positions.length - 1));
-        
-        if (!isAnimating) {
-            isAnimating = true;
-            gsap.to(window, {
-                scrollTo: targetScrollPosition,
-                duration: 0.5,
-                ease: "power2.out",
-                onComplete: () => {
-                    isAnimating = false;
-                }
-            });
-        }
-    }, 150);
-}
-
-// Add scroll event listener
-window.addEventListener('scroll', handleScroll, { passive: true });
-
-// Initial position setup
-camera.position.copy(positions[0].pos);
-camera.rotation.set(positions[0].rot.x, positions[0].rot.y, positions[0].rot.z);
-
-// Handle window resize
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
 });
+
+// Disable local scrolling
+document.body.style.overflow = 'hidden';
+window.addEventListener('wheel', e => e.preventDefault(), { passive: false });
