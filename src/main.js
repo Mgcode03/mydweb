@@ -17,11 +17,34 @@ const positions = [
    
 ];
 
-let externalProgress = 0;
+// main.js (updated)
+import { scene, camera } from './scene.js';
+import gsap from 'gsap';
 
-// Update camera position based on external progress (0-1)
-function updateCamera(progress) {
-    const mappedProgress = progress * (positions.length - 1);
+// Define camera positions (keep your original positions array)
+const positions = [ /* your existing position configs */ ];
+
+// Listen for parent page scroll using cross-domain techniques
+let parentScroll = 0;
+
+// Method 1: Use Intersection Observer
+const observer = new IntersectionObserver((entries) => {
+    const ratio = entries[0].intersectionRatio;
+    parentScroll = 1 - ratio; // Invert for scroll correlation
+    updateCamera();
+}, {
+    threshold: Array.from({ length: 100 }, (_, i) => i / 100)
+});
+
+// Method 2: Use wheel event bubbling (works even when focused outside iframe)
+document.addEventListener('wheel', (e) => {
+    parentScroll = Math.max(0, Math.min(1, parentScroll + (e.deltaY * 0.0005)));
+    updateCamera();
+}, { passive: true });
+
+// Update camera based on scroll
+function updateCamera() {
+    const mappedProgress = parentScroll * (positions.length - 1);
     const currentIndex = Math.floor(mappedProgress);
     const nextIndex = Math.min(currentIndex + 1, positions.length - 1);
     const t = mappedProgress - currentIndex;
@@ -45,13 +68,9 @@ function updateCamera(progress) {
     });
 }
 
-// Listen for messages from parent (Framer)
-window.addEventListener('message', (event) => {
-    if (event.data.type === 'SCROLL_PROGRESS') {
-        updateCamera(event.data.progress);
-    }
-});
-
-// Disable local scrolling
+// Initial setup
+observer.observe(document.body);
 document.body.style.overflow = 'hidden';
-window.addEventListener('wheel', e => e.preventDefault(), { passive: false });
+document.body.style.height = '100vh';
+
+// Remove all original scroll-related code
