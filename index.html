@@ -6,23 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Room Scroll</title>
     <style>
-        * {
+        
+        html, body {
+            overflow: hidden !important;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            overscroll-behavior: none;
         }
-
-        body {
-            margin: 0;
-            overflow-x: hidden;
-            background: #121212;
-            
-        }
-
+        
         canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
+            touch-action: none;
         }
     </style>
 </head>
