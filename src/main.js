@@ -17,101 +17,60 @@ const positions = [
    
 ];
 
-let progress = 0;
-let currentSection = 0;
-let isAnimating = false;
+// main.js (updated)
+import { scene, camera } from './scene.js';
+import gsap from 'gsap';
 
-// Set up scroll sections
-const totalDistance = (positions.length - 1) * 1000; // Total scroll distance needed
-document.body.style.height = `${totalDistance}px`;
+// Define camera positions (keep your original positions array)
+const positions = [ /* your existing position configs */ ];
 
-// Smooth scroll handling
-let scrollVelocity = 0;
-let lastScrollPosition = 0;
-let scrollTimeout;
+// Listen for parent page scroll using cross-domain techniques
+let parentScroll = 0;
 
-// Function to interpolate between two positions based on progress
-function interpolatePositions(curr, next, t) {
-    return {
-        pos: {
-            x: gsap.utils.interpolate(curr.pos.x, next.pos.x, t),
-            y: gsap.utils.interpolate(curr.pos.y, next.pos.y, t),
-            z: gsap.utils.interpolate(curr.pos.z, next.pos.z, t)
-        },
-        rot: {
-            x: gsap.utils.interpolate(curr.rot.x, next.rot.x, t),
-            y: gsap.utils.interpolate(curr.rot.y, next.rot.y, t),
-            z: gsap.utils.interpolate(curr.rot.z, next.rot.z, t)
-        }
-    };
-}
+// Method 1: Use Intersection Observer
+const observer = new IntersectionObserver((entries) => {
+    const ratio = entries[0].intersectionRatio;
+    parentScroll = 1 - ratio; // Invert for scroll correlation
+    updateCamera();
+}, {
+    threshold: Array.from({ length: 100 }, (_, i) => i / 100)
+});
 
-// Update camera position based on scroll
+// Method 2: Use wheel event bubbling (works even when focused outside iframe)
+document.addEventListener('wheel', (e) => {
+    parentScroll = Math.max(0, Math.min(1, parentScroll + (e.deltaY * 0.0005)));
+    updateCamera();
+}, { passive: true });
+
+// Update camera based on scroll
 function updateCamera() {
-    const scrollPercent = window.scrollY / totalDistance;
-    progress = Math.max(0, Math.min(positions.length - 1, scrollPercent * (positions.length - 1)));
-    
-    const currentIndex = Math.floor(progress);
+    const mappedProgress = parentScroll * (positions.length - 1);
+    const currentIndex = Math.floor(mappedProgress);
     const nextIndex = Math.min(currentIndex + 1, positions.length - 1);
-    const t = progress - currentIndex;
+    const t = mappedProgress - currentIndex;
     
     const interpolated = interpolatePositions(positions[currentIndex], positions[nextIndex], t);
     
-    camera.position.set(
-        interpolated.pos.x,
-        interpolated.pos.y,
-        interpolated.pos.z
-    );
-    
-    camera.rotation.set(
-        interpolated.rot.x,
-        interpolated.rot.y,
-        interpolated.rot.z
-    );
+    gsap.to(camera.position, {
+        x: interpolated.pos.x,
+        y: interpolated.pos.y,
+        z: interpolated.pos.z,
+        duration: 0.5,
+        ease: "power2.out"
+    });
+
+    gsap.to(camera.rotation, {
+        x: interpolated.rot.x,
+        y: interpolated.rot.y,
+        z: interpolated.rot.z,
+        duration: 0.5,
+        ease: "power2.out"
+    });
 }
 
-// Smooth scroll handler
-function handleScroll() {
-    const currentScrollPosition = window.scrollY;
-    scrollVelocity = currentScrollPosition - lastScrollPosition;
-    lastScrollPosition = currentScrollPosition;
-    
-    // Clear existing timeout
-    if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
-    }
-    
-    // Update camera
-    updateCamera();
-    
-    // Set timeout for smooth stop
-    scrollTimeout = setTimeout(() => {
-        const currentIndex = Math.round(progress);
-        const targetScrollPosition = currentIndex * (totalDistance / (positions.length - 1));
-        
-        if (!isAnimating) {
-            isAnimating = true;
-            gsap.to(window, {
-                scrollTo: targetScrollPosition,
-                duration: 0.5,
-                ease: "power2.out",
-                onComplete: () => {
-                    isAnimating = false;
-                }
-            });
-        }
-    }, 150);
-}
+// Initial setup
+observer.observe(document.body);
+document.body.style.overflow = 'hidden';
+document.body.style.height = '100vh';
 
-// Add scroll event listener
-window.addEventListener('scroll', handleScroll, { passive: true });
-
-// Initial position setup
-camera.position.copy(positions[0].pos);
-camera.rotation.set(positions[0].rot.x, positions[0].rot.y, positions[0].rot.z);
-
-// Handle window resize
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-});
+// Remove all original scroll-related code
